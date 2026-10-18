@@ -1,0 +1,19 @@
+syntax = "proto2";
+
+package signal.wire;
+
+message WhisperMessage {
+  optional bytes  ephemeral_key    = 1;
+  optional uint32 counter          = 2;
+  optional uint32 previous_counter = 3;
+  optional bytes  ciphertext       = 4;
+}
+
+message PreKeyWhisperMessage {
+  optional uint32 registration_id  = 5;
+  optional uint32 pre_key_id       = 1;
+  optional uint32 signed_pre_key_id = 6;
+  optional bytes  base_key         = 2;
+  optional bytes  identity_key     = 3;
+  optional bytes  message          = 4; // WhisperMessage
+}

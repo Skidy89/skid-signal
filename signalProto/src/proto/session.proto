@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package signal.session;
+
+message SessionRecord {
+  string version = 1;
+  map<string, SessionEntry> sessions = 2;
+}
+
+message SessionEntry {
+  uint32 registration_id = 1;
+  CurrentRatchet current_ratchet = 2;
+  SessionIndexInfo index_info = 3;
+  map<string, Chain> chains = 4; 
+  PendingPreKey pending_pre_key = 5;
+}
+
+message KeyPair {
+  bytes pub_key = 1;  
+  bytes priv_key = 2; 
+}
+
+message CurrentRatchet {
+  KeyPair ephemeral_key_pair = 1;
+  bytes last_remote_ephemeral_key = 2; 
+  uint32 previous_counter = 3;
+  bytes root_key = 4;
+}
+
+message SessionIndexInfo {
+  bytes base_key = 1;
+  int32 base_key_type = 2; // 1 = OURS, 2 = THEIRS
+  bool is_closed = 3;
+  int64 closed_at = 4;
+  int64 used = 5;
+  int64 created = 6;
+  bytes remote_identity_key = 7; // 33 bytes
+}
+
+message ChainKey {
+  int32 counter = 1; 
+  bytes key = 2;     
+}
+
+message Chain {
+  ChainKey chain_key = 1;
+  int32 chain_type = 2; // 1 = SENDING, 2 = RECEIVING
+  map<int32, bytes> message_keys = 3;
+}
+
+message PendingPreKey {
+  bytes base_key = 1;
+  optional uint32 pre_key_id = 2;
+  uint32 signed_pre_key_id = 3;
+}

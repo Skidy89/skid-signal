@@ -1,0 +1,42 @@
+{
+  "name": "signal",
+  "version": "0.0.1",
+  "description": "Signal Protocol native Rust (X3DH + Double Ratchet) — MIT replacement for libsignal (GPL). E2EE engine for WhatsApp Multi-Device.",
+  "keywords": [
+    "signal"
+  ],
+  "homepage": "https://github.com/Skidy89/skid-signal#readme",
+  "bugs": {
+    "url": "https://github.com/Skidy89/skid-signal/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Skidy89/skid-signal.git"
+  },
+  "license": "MIT",
+  "author": "skidy89",
+  "maintainers": [
+    "skidy89"
+  ],
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "files": [
+    "dist",
+    "native"
+  ],
+  "scripts": {
+    "build:native": "napi build --release --platform --js-package-name @skidy89/signal --config-path napi.config.json --manifest-path signal/Cargo.toml --output-dir native/ --js index.js",
+    "test": "npx jest",
+    "proto:gen": "pbjs -t static-module -w commonjs -o ./protojs/session.js ./signalProto/src/proto/session.proto && pbts -o ./protojs/session.d.ts ./protojs/session.js"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.10.8",
+    "@types/node": "^26.6.5",
+    "jest": "^30.5.2",
+    "libsignal": "github:WhiskeySockets/libsignal-node",
+    "protobufjs-cli": "^2.7.1"
+  },
+  "dependencies": {
+    "protobufjs": "^8.8.1"
+  }
+}
