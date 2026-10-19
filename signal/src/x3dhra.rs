@@ -38,7 +38,7 @@ pub enum BuilderError {
   #[error("Malformed PreKeyWhisperMessage: missing {0}")]
   Malformed(&'static str),
 }
-
+const IDENTITY_FIELD: u64 = 3;
 pub struct LocalIdentity<'a> {
   pub priv_key: &'a [u8],
   pub pub_key: &'a [u8],
@@ -302,6 +302,61 @@ pub fn init_incoming(
   Ok(msg.pre_key_id)
 }
 
+#[inline]
+fn skip(buf: &[u8], pos: usize, n: usize) -> Option<usize> {
+  pos.checked_add(n).filter(|&p| p <= buf.len())
+}
+
+fn read_varint(buf: &[u8], pos: &mut usize) -> Option<u64> {
+  let mut result = 0u64;
+  let mut shift = 0u32;
+  loop {
+    if shift > 63 {
+      return None;
+    }
+    let byte = *buf.get(*pos)?;
+    *pos += 1;
+    result |= u64::from(byte & 0x7f) << shift;
+    if byte & 0x80 == 0 {
+      return Some(result);
+    }
+    shift += 7;
+  }
+}
+
+fn find_identity(body: &[u8]) -> Option<&[u8]> {
+  let mut pos = 0usize;
+  let mut found: Option<&[u8]> = None;
+
+  while pos < body.len() {
+    let tag = read_varint(body, &mut pos)?;
+    let field = tag >> 3;
+    match tag & 7 {
+      0 => {
+        read_varint(body, &mut pos)?;
+      }
+      1 => pos = skip(body, pos, 8)?,
+      5 => pos = skip(body, pos, 4)?,
+      2 => {
+        let len = usize::try_from(read_varint(body, &mut pos)?).ok()?;
+        let end = skip(body, pos, len)?;
+        if field == IDENTITY_FIELD {
+          found = Some(&body[pos..end]);
+        }
+        pos = end;
+      }
+      _ => return None,
+    }
+  }
+  found
+}
+
+pub fn extract(ciphertext: &[u8]) -> Option<&[u8]> {
+  if ciphertext.len() < 2 || (ciphertext[0] & 0x0f) != 3 {
+    return None;
+  }
+  find_identity(&ciphertext[1..]).filter(|k| k.len() == 33)
+}
 pub fn decrypt_prekey_message(
   record: &mut SessionRecord,
   keys: &IncomingKeys,

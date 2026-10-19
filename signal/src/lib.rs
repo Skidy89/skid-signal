@@ -10,7 +10,7 @@ use crate::curve::{generate_key_pair_int, shared_secret_int, sign, verify};
 use crate::group::SenderKeyRecord;
 use crate::session_record::SessionRecordExt;
 use crate::utils::scrub_pub_key;
-use crate::x3dhra::{IncomingKeys, KeyPairRef, LocalIdentity, RemoteBundle};
+use crate::x3dhra::{extract, IncomingKeys, KeyPairRef, LocalIdentity, RemoteBundle};
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use signal_proto::signal::session::SessionRecord;
@@ -397,4 +397,9 @@ pub fn x25519_public_from_private(priv_key: Uint8Array) -> Result<Buffer> {
   out[0] = KEY_TYPE;
   out[1..].copy_from_slice(&x25519(sk, X25519_BASEPOINT_BYTES));
   Ok(Buffer::from(out.to_vec()))
+}
+
+#[napi]
+pub fn extract_identity_from_pkmsg(ciphertext: Uint8Array) -> Option<Buffer> {
+  extract(&ciphertext).map(|k| Buffer::from(k.to_vec()))
 }

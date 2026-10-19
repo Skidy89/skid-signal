@@ -1,3 +1,4 @@
+import * as native from '../../native'
 export type Bytes = Buffer
 export type MaybePromise<T> = T | Promise<T>
 
@@ -8,6 +9,10 @@ export const toBuf = (b: Buffer | Uint8Array) => {
   return Buffer.from(b)
 }
 
+export function extractIdentityFromPkmsg(ciphertext: Uint8Array): Uint8Array | undefined {
+	if (!ciphertext) return undefined
+	return native.extractIdentityFromPkmsg(ciphertext) ?? undefined
+}
 
 export function pub33(key: Bytes): Buffer {
   const b = key

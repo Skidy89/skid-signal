@@ -29,6 +29,8 @@ export interface EncryptResult {
   newRecord: Buffer
 }
 
+export declare function extractIdentityFromPkmsg(ciphertext: Uint8Array): Buffer | null
+
 export declare function generateKeyPair(): CreateKeyPair
 
 export declare function groupCreateDistributionMessage(record?: Buffer | undefined | null): GroupSkdmResult
