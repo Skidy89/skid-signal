@@ -13,6 +13,7 @@ message SessionEntry {
   SessionIndexInfo index_info = 3;
   map<string, Chain> chains = 4; 
   PendingPreKey pending_pre_key = 5;
+  repeated bytes closed_chains = 6;
 }
 
 message KeyPair {

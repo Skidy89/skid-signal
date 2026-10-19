@@ -203,6 +203,7 @@ pub(crate) fn process_prekey_bundle_with_keys(
       created: now,
       remote_identity_key: bundle.identity_key.to_vec(),
     }),
+    closed_chains: Default::default(),
     chains: Default::default(),
     pending_pre_key: Some(PendingPreKey {
       base_key: base.pub_key,
@@ -295,6 +296,7 @@ pub fn init_incoming(
       created: now,
       remote_identity_key: identity_key.to_vec(),
     }),
+    closed_chains: Default::default(),
     chains: Default::default(),
     pending_pre_key: None,
   };

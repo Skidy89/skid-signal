@@ -19,6 +19,7 @@ const MESSAGE_KEYS_INFO: &[u8] = b"WhisperMessageKeys";
 const RATCHET_INFO: &[u8] = b"WhisperRatchet";
 const ZERO_SALT: [u8; 32] = [0u8; 32];
 
+pub const MAX_CLOSED_RECEIVER_CHAINS: usize = 5;
 #[derive(Debug, thiserror::Error)]
 pub enum CipherError {
   #[error(transparent)]
@@ -55,7 +56,24 @@ pub struct EncryptOut {
   pub body: Vec<u8>,
   pub registration_id: u32,
 }
-
+fn prune_closed_chains(entry: &mut SessionEntry) {
+  while entry.closed_chains.len() > MAX_CLOSED_RECEIVER_CHAINS {
+    let old = entry.closed_chains.remove(0);
+    let _ = entry.delete_chain(&old);
+  }
+}
+fn drop_legacy_dead_chains(entry: &mut SessionEntry) {
+  if !entry.closed_chains.is_empty()
+    || entry.chains.len() <= MAX_CLOSED_RECEIVER_CHAINS + 2
+  {
+    return;
+  }
+  entry.chains.retain(|_, c| {
+    c.chain_type != CHAIN_RECEIVING
+      || !c.message_keys.is_empty()
+      || c.chain_key.as_ref().is_some_and(|k| !k.key.is_empty())
+  });
+}
 fn new_ephemeral_key_pair() -> KeyPair {
   let mut seed = [0u8; 32];
   OsRng.fill_bytes(&mut seed);
@@ -161,12 +179,20 @@ fn maybe_step_ratchet(
     return Ok(());
   }
 
+  drop_legacy_dead_chains(entry);
+
   let last_remote = ratchet_mut(entry)?.last_remote_ephemeral_key.clone();
+  let mut closed_prev = false;
   if let Some(prev) = entry.get_chain_mut(&last_remote) {
     fill_message_keys(prev, previous_counter)?;
     if let Some(ck) = prev.chain_key.as_mut() {
       ck.key.clear();
     }
+    closed_prev = prev.chain_type == CHAIN_RECEIVING;
+  }
+  if closed_prev {
+    entry.closed_chains.push(last_remote);
+    prune_closed_chains(entry);
   }
 
   calculate_ratchet(entry, remote_key, false)?;
@@ -238,10 +264,11 @@ pub fn decrypt_with_entry(
   Ok(plaintext)
 }
 
-pub fn decrypt_whisper_message(
+fn decrypt_whisper_impl(
   record: &mut SessionRecord,
   our_identity_pub: &[u8],
   buf: &[u8],
+  keep_record_on_err: bool,
 ) -> Result<Vec<u8>, CipherError> {
   let mut order: Vec<(String, i64)> = record
     .sessions
@@ -251,20 +278,27 @@ pub fn decrypt_whisper_message(
   if order.is_empty() {
     return Err(CipherError::NoSessions);
   }
-
   order.sort_by_key(|(_, used)| std::cmp::Reverse(*used));
 
-  for (id, _) in order {
+  let last = order.len() - 1;
+  for (i, (id, _)) in order.into_iter().enumerate() {
     let Some(slot) = record.sessions.get_mut(&id) else {
       continue;
     };
-    let mut attempt = slot.clone();
-    match decrypt_with_entry(&mut attempt, our_identity_pub, buf) {
+    let result = if keep_record_on_err || i != last {
+      let mut attempt = slot.clone();
+      decrypt_with_entry(&mut attempt, our_identity_pub, buf).map(|pt| {
+        *slot = attempt;
+        pt
+      })
+    } else {
+      decrypt_with_entry(slot, our_identity_pub, buf)
+    };
+    match result {
       Ok(plaintext) => {
-        if let Some(info) = attempt.index_info.as_mut() {
+        if let Some(info) = slot.index_info.as_mut() {
           info.used = now_ms();
         }
-        *slot = attempt;
         return Ok(plaintext);
       }
       Err(CipherError::MessageCounter) => return Err(CipherError::MessageCounter),
@@ -274,6 +308,22 @@ pub fn decrypt_whisper_message(
   Err(CipherError::NoMatchingSessions)
 }
 
+
+pub fn decrypt_whisper_message(
+  record: &mut SessionRecord,
+  our_identity_pub: &[u8],
+  buf: &[u8],
+) -> Result<Vec<u8>, CipherError> {
+  decrypt_whisper_impl(record, our_identity_pub, buf, true)
+}
+
+pub fn decrypt_whisper_message_consume(
+  record: &mut SessionRecord,
+  our_identity_pub: &[u8],
+  buf: &[u8],
+) -> Result<Vec<u8>, CipherError> {
+  decrypt_whisper_impl(record, our_identity_pub, buf, false)
+}
 pub fn encrypt(
   record: &mut SessionRecord,
   our_identity_pub: &[u8],

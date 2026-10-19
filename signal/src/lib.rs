@@ -143,7 +143,8 @@ pub fn session_decrypt_whisper(
 ) -> napi::Result<DecryptResult> {
   let mut rec = SessionRecord::deserialize(&record).map_err(js_err)?;
   let plaintext =
-    session_cipher::decrypt_whisper_message(&mut rec, &our_identity_pub, &msg).map_err(js_err)?;
+    session_cipher::decrypt_whisper_message_consume(&mut rec, &our_identity_pub, &msg)
+      .map_err(js_err)?;
   Ok(DecryptResult {
     plaintext: plaintext.into(),
     new_record: rec.serialize().into(),
