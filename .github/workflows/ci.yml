@@ -36,6 +36,7 @@ jobs:
       - run: yarn install --frozen-lockfile
       - run: cargo test --manifest-path signal/Cargo.toml
       - run: yarn build:native
+      - run: yarn build
       - run: yarn test
 
   build:
