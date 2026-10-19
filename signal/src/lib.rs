@@ -11,9 +11,11 @@ use crate::group::SenderKeyRecord;
 use crate::session_record::SessionRecordExt;
 use crate::utils::scrub_pub_key;
 use crate::x3dhra::{IncomingKeys, KeyPairRef, LocalIdentity, RemoteBundle};
-use napi::bindgen_prelude::Buffer;
+use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use signal_proto::signal::session::SessionRecord;
+use x25519_dalek::{x25519, X25519_BASEPOINT_BYTES};
+const KEY_TYPE: u8 = 0x05;
 
 fn js_err<E: std::fmt::Display>(e: E) -> napi::Error {
   napi::Error::from_reason(e.to_string())
@@ -25,7 +27,33 @@ fn record_from(record: Option<Buffer>) -> napi::Result<SessionRecord> {
     None => Ok(SessionRecord::new()),
   }
 }
+#[inline]
+fn pub32(b: &[u8]) -> napi::Result<[u8; 32]> {
+  let raw = match b.len() {
+    33 if b[0] == KEY_TYPE => &b[1..],
+    32 => b,
+    _ => return Err(js_err("Invalid public key")),
+  };
+  Ok(raw.try_into().unwrap())
+}
+#[inline]
+fn clamp(k: &mut [u8; 32]) {
+  k[0] &= 248;
+  k[31] &= 127;
+  k[31] |= 64;
+}
 
+#[inline]
+fn priv32(b: &[u8]) -> napi::Result<[u8; 32]> {
+  b.try_into().map_err(|_| js_err("Invalid private key"))
+}
+fn pack(sk: &[u8; 32]) -> Buffer {
+  let mut out = vec![0u8; 65];
+  out[..32].copy_from_slice(sk);
+  out[32] = KEY_TYPE;
+  out[33..].copy_from_slice(&x25519(*sk, X25519_BASEPOINT_BYTES));
+  out.into()
+}
 #[napi(object)]
 pub struct CreateKeyPair {
   pub pub_key: Buffer,
@@ -286,15 +314,10 @@ pub fn group_decrypt(record: Option<Buffer>, msg: Buffer) -> napi::Result<Decryp
 
 #[napi]
 pub fn verify_signature(sig: Buffer, pub_key: Buffer, message: Buffer) -> napi::Result<bool> {
-  if sig.len() != 64 {
-    return Err(js_err("Signature must be 64 bytes"));
-  }
-  let pub_key_scrubbed = scrub_pub_key(&pub_key).map_err(js_err)?;
-
   let sig_array: &[u8; 64] = sig.as_ref().try_into().map_err(js_err)?;
 
   Ok(
-    verify(pub_key_scrubbed.as_ref(), message.as_ref(), sig_array)
+    verify(pub_key.as_ref(), message.as_ref(), sig_array)
       .map_err(js_err)
       .unwrap(),
   )
@@ -332,4 +355,46 @@ pub fn sign_message(priv_key: Buffer, message: Buffer) -> napi::Result<Buffer> {
   let sig = sign(priv_key_array, message.as_ref(), None).map_err(js_err)?;
 
   Ok(Buffer::from(Vec::from(sig)))
+}
+
+#[napi]
+pub fn calculate_agreement(pub_key: Buffer, priv_key: Buffer) -> napi::Result<Buffer> {
+  let pk: [u8; 32] = pub_key.as_ref()[pub_key.len() - 32..]
+    .try_into()
+    .map_err(js_err)?;
+  let sk: [u8; 32] = priv_key.as_ref().try_into().map_err(js_err)?;
+  Ok(x25519(sk, pk).to_vec().into())
+}
+
+#[napi]
+pub fn x25519_agree(pub_key: Buffer, priv_key: Buffer) -> napi::Result<Buffer> {
+  let shared = x25519(priv32(&priv_key)?, pub32(&pub_key)?);
+  if shared.iter().all(|&b| b == 0) {
+    return Err(js_err("Invalid public key"));
+  }
+  Ok(Buffer::from(shared.to_vec()))
+}
+
+#[napi]
+pub fn x25519_generate_key_pair() -> napi::Result<Buffer> {
+  let mut sk = [0u8; 32];
+  getrandom::getrandom(&mut sk).map_err(|e| js_err(e.to_string()))?;
+  clamp(&mut sk);
+  Ok(pack(&sk))
+}
+
+#[napi]
+pub fn x25519_create_key_pair(priv_key: Uint8Array) -> napi::Result<Buffer> {
+  let mut sk = priv32(&priv_key)?;
+  clamp(&mut sk);
+  Ok(pack(&sk))
+}
+
+#[napi]
+pub fn x25519_public_from_private(priv_key: Uint8Array) -> Result<Buffer> {
+  let sk = priv32(&priv_key)?;
+  let mut out = [0u8; 33];
+  out[0] = KEY_TYPE;
+  out[1..].copy_from_slice(&x25519(sk, X25519_BASEPOINT_BYTES));
+  Ok(Buffer::from(out.to_vec()))
 }

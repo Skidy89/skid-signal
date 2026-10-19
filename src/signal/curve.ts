@@ -1,29 +1,28 @@
-import * as curve from "../../native";
-type KeyPair = {
-    private: Uint8Array
-    public: Uint8Array
+import * as native from '../../native'
+import { Bytes } from './util'
+
+export interface KeyPair {
+  pubKey: Buffer
+  privKey: Buffer
 }
-export const generateSignalPubKey = (pubKey: Buffer) =>
-	pubKey.length === 33 ? pubKey : Buffer.concat([Buffer.from([0x05]), pubKey])
-export const Curve = {
-	generateKeyPair: (): KeyPair => {
-		const { pubKey, privKey } = curve.generateKeyPair()
-		return {
-			private: privKey,
-			public: pubKey.subarray(1)
-		}
-	},
-	sharedKey: (privateKey: Buffer, publicKey: Buffer) => {
-		const shared = curve.signMessage(generateSignalPubKey(publicKey), privateKey)
-		return shared
-	},
-	sign: (privateKey: Buffer, buf: Buffer) => curve.signMessage(privateKey, buf),
-	verify: (pubKey: Buffer, message: Buffer, signature: Buffer) => {
-		try {
-			curve.verifySignature(generateSignalPubKey(pubKey), message, signature)
-			return true
-		} catch (error) {
-			return false
-		}
-	}
+
+
+const split = (b: Buffer): KeyPair => ({
+  privKey: b.subarray(0, 32),
+  pubKey: b.subarray(32),
+})
+
+export const generateKeyPair = (): KeyPair => split(native.x25519GenerateKeyPair())
+export const createKeyPair = (privKey: Bytes): KeyPair => split(native.x25519CreateKeyPair(privKey))
+export const getPublicFromPrivateKey = (privKey: Bytes): Buffer => native.x25519PublicFromPrivate(privKey)
+export const calculateAgreement = (pubKey: Bytes, privKey: Bytes): Buffer =>
+  native.x25519Agree(pubKey, privKey)
+
+export const calculateSignature = (privKey: Bytes, message: Bytes): Buffer =>
+  native.signMessage(privKey, message)
+
+export function verifySignature(pubKey: Bytes, message: Bytes, signature: Bytes): true {
+  if (signature.length !== 64) throw new Error('Invalid signature length')
+  if (!native.verifySignature(signature, pubKey, message)) throw new Error('Invalid signature')
+  return true
 }

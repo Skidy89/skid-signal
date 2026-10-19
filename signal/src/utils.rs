@@ -44,6 +44,9 @@ pub fn unclamp_priv_key(priv_key: &mut [u8; 32]) -> [u8; 32] {
 }
 
 pub fn scrub_pub_key(pub_key: &[u8]) -> Result<[u8; 32], &'static str> {
+  if pub_key.len() != 32 && pub_key.len() != 33 {
+    return Err("Invalid public key length");
+  }
   let slice = match pub_key {
     key if key.len() == 32 => key,
     [5, key @ ..] if key.len() == 32 => {

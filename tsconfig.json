@@ -3,6 +3,7 @@
     "strict": true,
     "allowJs": true,
     "checkJs": true,
+    "declaration": true,
     "esModuleInterop": true,
     "noImplicitAny": true,
     "experimentalDecorators": true,
@@ -18,8 +19,8 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "target": "ES2019",
-    "noUnusedParameters": false
+    "noUnusedParameters": false,
   },
-  "include": ["types/**/*d.ts", "**/*.ts", "native/*.ts"],
+  "include": ["src/**/*", "types/**/*.d.ts", "native/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

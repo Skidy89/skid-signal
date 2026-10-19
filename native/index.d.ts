@@ -9,6 +9,8 @@
  */
 export declare const __napiBindingTarget: 'native' | 'wasm32-wasi' | 'wasm32-wasip1'
 
+export declare function calculateAgreement(pubKey: Buffer, privKey: Buffer): Buffer
+
 export interface CreateKeyPair {
   pubKey: Buffer
   privKey: Buffer
@@ -101,3 +103,11 @@ export declare function sharedSecret(pubKey: Buffer, privKey: Buffer): Buffer
 export declare function signMessage(privKey: Buffer, message: Buffer): Buffer
 
 export declare function verifySignature(sig: Buffer, pubKey: Buffer, message: Buffer): boolean
+
+export declare function x25519Agree(pubKey: Buffer, privKey: Buffer): Buffer
+
+export declare function x25519CreateKeyPair(privKey: Uint8Array): Buffer
+
+export declare function x25519GenerateKeyPair(): Buffer
+
+export declare function x25519PublicFromPrivate(privKey: Uint8Array): Buffer

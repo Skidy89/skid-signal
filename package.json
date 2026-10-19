@@ -1,10 +1,11 @@
 {
-  "name": "signal",
+  "name": "@skidy89/signal-protocol",
   "version": "0.0.1",
   "description": "Signal Protocol native Rust (X3DH + Double Ratchet) — MIT replacement for libsignal (GPL). E2EE engine for WhatsApp Multi-Device.",
   "keywords": [
     "signal"
   ],
+  "types": "dist/index.d.ts",
   "homepage": "https://github.com/Skidy89/skid-signal#readme",
   "bugs": {
     "url": "https://github.com/Skidy89/skid-signal/issues"
@@ -27,7 +28,14 @@
   "scripts": {
     "build:native": "napi build --release --platform --js-package-name @skidy89/signal --config-path napi.config.json --manifest-path signal/Cargo.toml --output-dir native/ --js index.js",
     "test": "npx jest",
-    "proto:gen": "pbjs -t static-module -w commonjs -o ./protojs/session.js ./signalProto/src/proto/session.proto && pbts -o ./protojs/session.d.ts ./protojs/session.js"
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "devDependencies": {
     "@napi-rs/cli": "^3.10.8",
@@ -37,6 +45,8 @@
     "protobufjs-cli": "^2.7.1"
   },
   "dependencies": {
-    "protobufjs": "^8.8.1"
+    "msgpackr": "^2.1.1",
+    "protobufjs": "^8.8.1",
+    "typescript": "^7.0.2"
   }
 }

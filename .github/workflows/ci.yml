@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+env:
+  DEBUG: napi:*
+  CARGO_INCREMENTAL: 0
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    name: Test (Rust + Jest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: signal
+      - uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: npm ci
+      - run: cargo test --manifest-path signal/Cargo.toml
+      - run: npm run build:native
+      - run: npm test
+
+  build:
+    name: Build ${{ matrix.settings.target }}
+    needs: test
+    runs-on: ${{ matrix.settings.host }}
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - { host: ubuntu-latest,  target: x86_64-unknown-linux-gnu,   flags: "--use-napi-cross", smoke: true }
+          - { host: ubuntu-latest,  target: aarch64-unknown-linux-gnu,  flags: "--use-napi-cross" }
+          - { host: ubuntu-latest,  target: x86_64-unknown-linux-musl,  flags: "-x" }
+          - { host: ubuntu-latest,  target: aarch64-unknown-linux-musl, flags: "-x" }
+          - { host: windows-latest, target: x86_64-pc-windows-msvc,     flags: "", smoke: true }
+          - { host: windows-latest, target: aarch64-pc-windows-msvc,    flags: "" }
+          - { host: macos-latest,   target: aarch64-apple-darwin,       flags: "", smoke: true }
+          - { host: macos-latest,   target: x86_64-apple-darwin,        flags: "" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.settings.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: signal
+          key: ${{ matrix.settings.target }}
+      - uses: arduino/setup-protoc@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: mlugg/setup-zig@v2
+        if: contains(matrix.settings.target, 'musl')
+        with:
+          version: 0.13.0
+      - uses: taiki-e/install-action@v2
+        if: contains(matrix.settings.target, 'musl')
+        with:
+          tool: cargo-zigbuild
+      - run: npm ci
+      - name: Build native
+        run: npm run build:native -- --target ${{ matrix.settings.target }} ${{ matrix.settings.flags }}
+      - name: Smoke test (carga el .node)
+        if: matrix.settings.smoke
+        run: node -e "const n=require('./native'); console.log(Object.keys(n).sort().join('\n'))"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bindings-${{ matrix.settings.target }}
+          path: native/
+          if-no-files-found: error
+
+  publish:
+    name: Publish to npm
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          path: native
+          pattern: bindings-*
+          merge-multiple: true
+      - name: Verificar que el tag coincide con package.json
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "Tag ($TAG) != package.json ($PKG)"; exit 1
+          fi
+      - run: npm run build
+      - name: Contenido del paquete
+        run: |
+          ls native/*.node
+          npm pack --dry-run
+      - name: Publish
+        run: |
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then DIST_TAG=next; else DIST_TAG=latest; fi
+          npm publish --provenance --access public --tag "$DIST_TAG"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

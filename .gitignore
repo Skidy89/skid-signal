@@ -4,3 +4,7 @@ node_modules
 */node_modules
 *-lock.json
 libtest.js
+*/node_modules
+dist
+*.tmp
+*.swp

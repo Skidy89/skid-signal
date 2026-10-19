@@ -54,6 +54,7 @@ pub fn shared_secret_int(
 
   Ok(shared)
 }
+
 pub fn verify(public_key: &[u8], msg: &[u8], signature: &[u8]) -> Result<bool, String> {
   let pub_key = scrub_pub_key(&public_key);
   check_len(signature, 64, "signature")?;

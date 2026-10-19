@@ -778,6 +778,7 @@ function __napiStampBindingTarget(exportsObject, target) {
 // linked import resolves to `undefined`.
 module.exports.__napiBindingTarget = __napiStampBindingTarget(nativeBinding, __napiLoadedBindingTarget)
 module.exports = nativeBinding
+module.exports.calculateAgreement = nativeBinding.calculateAgreement
 module.exports.generateKeyPair = nativeBinding.generateKeyPair
 module.exports.groupCreateDistributionMessage = nativeBinding.groupCreateDistributionMessage
 module.exports.groupDecrypt = nativeBinding.groupDecrypt
@@ -793,3 +794,7 @@ module.exports.sessionProcessPrekeyBundle = nativeBinding.sessionProcessPrekeyBu
 module.exports.sharedSecret = nativeBinding.sharedSecret
 module.exports.signMessage = nativeBinding.signMessage
 module.exports.verifySignature = nativeBinding.verifySignature
+module.exports.x25519Agree = nativeBinding.x25519Agree
+module.exports.x25519CreateKeyPair = nativeBinding.x25519CreateKeyPair
+module.exports.x25519GenerateKeyPair = nativeBinding.x25519GenerateKeyPair
+module.exports.x25519PublicFromPrivate = nativeBinding.x25519PublicFromPrivate
