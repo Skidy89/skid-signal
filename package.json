@@ -1,6 +1,6 @@
 {
   "name": "@skidy89/signal-protocol",
-  "version": "0.0.1",
+  "version": "0.0.1-beta.0",
   "description": "Signal Protocol native Rust (X3DH + Double Ratchet) — MIT replacement for libsignal (GPL). E2EE engine for WhatsApp Multi-Device.",
   "keywords": [
     "signal"
