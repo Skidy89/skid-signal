@@ -23,7 +23,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: yarn
+          cache-dependency-path: yarn.lock
+      - run: corepack enable
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -31,10 +33,10 @@ jobs:
       - uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - run: npm ci
+      - run: yarn install --frozen-lockfile
       - run: cargo test --manifest-path signal/Cargo.toml
-      - run: npm run build:native
-      - run: npm test
+      - run: yarn build:native
+      - run: yarn test
 
   build:
     name: Build ${{ matrix.settings.target }}
@@ -57,7 +59,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: yarn
+          cache-dependency-path: yarn.lock
+      - run: corepack enable
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.settings.target }}
@@ -76,9 +80,9 @@ jobs:
         if: contains(matrix.settings.target, 'musl')
         with:
           tool: cargo-zigbuild
-      - run: npm ci
+      - run: yarn install --frozen-lockfile
       - name: Build native
-        run: npm run build:native -- --target ${{ matrix.settings.target }} ${{ matrix.settings.flags }}
+        run: yarn build:native --target ${{ matrix.settings.target }} ${{ matrix.settings.flags }}
       - name: Smoke test (carga el .node)
         if: matrix.settings.smoke
         run: node -e "const n=require('./native'); console.log(Object.keys(n).sort().join('\n'))"
@@ -101,9 +105,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: yarn
+          cache-dependency-path: yarn.lock
           registry-url: https://registry.npmjs.org
-      - run: npm ci
+      - run: corepack enable
+      - run: yarn install --frozen-lockfile
       - uses: actions/download-artifact@v4
         with:
           path: native
@@ -116,7 +122,7 @@ jobs:
           if [ "$TAG" != "$PKG" ]; then
             echo "Tag ($TAG) != package.json ($PKG)"; exit 1
           fi
-      - run: npm run build
+      - run: yarn build
       - name: Contenido del paquete
         run: |
           ls native/*.node

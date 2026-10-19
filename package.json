@@ -20,6 +20,7 @@
     "skidy89"
   ],
   "type": "commonjs",
+  "packageManager": "yarn@1.22.22",
   "main": "dist/index.js",
   "files": [
     "dist",
@@ -27,9 +28,9 @@
   ],
   "scripts": {
     "build:native": "napi build --release --platform --js-package-name @skidy89/signal --config-path napi.config.json --manifest-path signal/Cargo.toml --output-dir native/ --js index.js",
-    "test": "npx jest",
+    "test": "jest",
     "build": "tsc -p tsconfig.build.json",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "yarn build"
   },
   "engines": {
     "node": ">=18"
