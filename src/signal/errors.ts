@@ -1,7 +1,7 @@
 export class SignalError extends Error {
   constructor(message: string) {
-    super(message)
-    this.name = new.target.name
+    super(message);
+    this.name = new.target.name;
   }
 }
 export class SessionError extends SignalError {}
@@ -11,6 +11,6 @@ export class UntrustedIdentityKeyError extends SignalError {
     readonly addr: string,
     readonly identityKey: Buffer,
   ) {
-    super('Untrusted identity key')
+    super("Untrusted identity key");
   }
 }

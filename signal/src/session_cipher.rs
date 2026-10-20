@@ -63,9 +63,7 @@ fn prune_closed_chains(entry: &mut SessionEntry) {
   }
 }
 fn drop_legacy_dead_chains(entry: &mut SessionEntry) {
-  if !entry.closed_chains.is_empty()
-    || entry.chains.len() <= MAX_CLOSED_RECEIVER_CHAINS + 2
-  {
+  if !entry.closed_chains.is_empty() || entry.chains.len() <= MAX_CLOSED_RECEIVER_CHAINS + 2 {
     return;
   }
   entry.chains.retain(|_, c| {
@@ -307,7 +305,6 @@ fn decrypt_whisper_impl(
   }
   Err(CipherError::NoMatchingSessions)
 }
-
 
 pub fn decrypt_whisper_message(
   record: &mut SessionRecord,

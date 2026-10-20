@@ -3,6 +3,7 @@ pub mod curve;
 pub mod group;
 pub mod session_cipher;
 pub mod session_record;
+pub mod tasks;
 pub mod utils;
 pub mod wire;
 pub mod x3dhra;

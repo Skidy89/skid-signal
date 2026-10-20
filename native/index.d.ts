@@ -7,111 +7,215 @@
  * flavor napi-rs can build is listed, because `NAPI_RS_NATIVE_LIBRARY_PATH`
  * can point the loader at a WASI artifact this package does not build itself.
  */
-export declare const __napiBindingTarget: 'native' | 'wasm32-wasi' | 'wasm32-wasip1'
+export declare const __napiBindingTarget:
+  "native" | "wasm32-wasi" | "wasm32-wasip1";
 
-export declare function calculateAgreement(pubKey: Buffer, privKey: Buffer): Buffer
+export declare function calculateAgreement(
+  pubKey: Buffer,
+  privKey: Buffer,
+): Buffer;
 
 export interface CreateKeyPair {
-  pubKey: Buffer
-  privKey: Buffer
+  pubKey: Buffer;
+  privKey: Buffer;
 }
 
 export interface DecryptResult {
-  plaintext: Buffer
-  newRecord: Buffer
+  plaintext: Buffer;
+  newRecord: Buffer;
 }
 
 export interface EncryptResult {
   /** 1 = WhisperMessage, 3 = PreKeyWhisperMessage */
-  msgType: number
-  body: Buffer
-  registrationId: number
-  newRecord: Buffer
+  msgType: number;
+  body: Buffer;
+  registrationId: number;
+  newRecord: Buffer;
 }
 
-export declare function extractIdentityFromPkmsg(ciphertext: Uint8Array): Buffer | null
+export declare function extractIdentityFromPkmsg(
+  ciphertext: Uint8Array,
+): Buffer | null;
 
-export declare function generateKeyPair(): CreateKeyPair
+export declare function generateKeyPair(): CreateKeyPair;
 
-export declare function generateKeyPairs(count: number): Array<CreateKeyPair>
+export declare function generateKeyPairs(count: number): Array<CreateKeyPair>;
 
-export declare function groupCreateDistributionMessage(record?: Buffer | undefined | null): GroupSkdmResult
+/** Sin estado, así que aquí sí es seguro cancelar con AbortSignal. */
+export declare function generateKeyPairsAsync(
+  count: number,
+  signal?: AbortSignal | undefined | null,
+): Promise<Array<CreateKeyPair>>;
 
-export declare function groupDecrypt(record: Buffer | undefined | null, msg: Buffer): DecryptResult
+export declare function groupCreateDistributionMessage(
+  record?: Buffer | undefined | null,
+): GroupSkdmResult;
 
-export declare function groupEncrypt(record: Buffer, plaintext: Buffer, legacyIterations?: boolean | undefined | null): GroupEncryptResult
+export declare function groupCreateDistributionMessageAsync(
+  record?: Buffer | undefined | null,
+): Promise<GroupSkdmResult>;
+
+export declare function groupDecrypt(
+  record: Buffer | undefined | null,
+  msg: Buffer,
+): DecryptResult;
+
+export declare function groupDecryptAsync(
+  record: Buffer | undefined | null,
+  msg: Buffer,
+): Promise<DecryptResult>;
+
+export declare function groupEncrypt(
+  record: Buffer,
+  plaintext: Buffer,
+  legacyIterations?: boolean | undefined | null,
+): GroupEncryptResult;
+
+export declare function groupEncryptAsync(
+  record: Buffer,
+  plaintext: Buffer,
+  legacyIterations?: boolean | undefined | null,
+): Promise<GroupEncryptResult>;
 
 export interface GroupEncryptResult {
-  ciphertext: Buffer
-  newRecord: Buffer
+  ciphertext: Buffer;
+  newRecord: Buffer;
 }
 
-export declare function groupEncryptWithSkdm(record: Buffer | undefined | null, plaintext: Buffer, legacyIterations?: boolean | undefined | null): GroupEncryptWithSkdmResult
+export declare function groupEncryptWithSkdm(
+  record: Buffer | undefined | null,
+  plaintext: Buffer,
+  legacyIterations?: boolean | undefined | null,
+): GroupEncryptWithSkdmResult;
+
+export declare function groupEncryptWithSkdmAsync(
+  record: Buffer | undefined | null,
+  plaintext: Buffer,
+  legacyIterations?: boolean | undefined | null,
+): Promise<GroupEncryptWithSkdmResult>;
 
 export interface GroupEncryptWithSkdmResult {
-  ciphertext: Buffer
-  skdm: Buffer
-  newRecord: Buffer
+  ciphertext: Buffer;
+  skdm: Buffer;
+  newRecord: Buffer;
 }
 
-export declare function groupProcessDistributionMessage(record: Buffer | undefined | null, skdm: Buffer): Buffer
+export declare function groupProcessDistributionMessage(
+  record: Buffer | undefined | null,
+  skdm: Buffer,
+): Buffer;
+
+export declare function groupProcessDistributionMessageAsync(
+  record: Buffer | undefined | null,
+  skdm: Buffer,
+): Promise<Buffer>;
 
 export interface GroupSkdmResult {
-  skdm: Buffer
-  newRecord: Buffer
+  skdm: Buffer;
+  newRecord: Buffer;
 }
 
 export interface KeyPairIn {
-  pubKey: Buffer
-  privKey: Buffer
+  pubKey: Buffer;
+  privKey: Buffer;
 }
 
 export interface ParsedPreKeyMessage {
-  registrationId: number
-  preKeyId?: number
-  signedPreKeyId: number
-  baseKey: Buffer
-  identityKey: Buffer
+  registrationId: number;
+  preKeyId?: number;
+  signedPreKeyId: number;
+  baseKey: Buffer;
+  identityKey: Buffer;
 }
 
-export declare function parsePrekeyMessage(msg: Buffer): ParsedPreKeyMessage
+export declare function parsePrekeyMessage(msg: Buffer): ParsedPreKeyMessage;
 
 export interface PreKeyBundleIn {
-  registrationId: number
-  identityKey: Buffer
-  signedPreKeyId: number
-  signedPreKey: Buffer
-  signedPreKeySignature: Buffer
-  preKeyId?: number
-  preKey?: Buffer
+  registrationId: number;
+  identityKey: Buffer;
+  signedPreKeyId: number;
+  signedPreKey: Buffer;
+  signedPreKeySignature: Buffer;
+  preKeyId?: number;
+  preKey?: Buffer;
 }
 
 export interface PreKeyDecryptResult {
-  plaintext: Buffer
-  newRecord: Buffer
-  usedPreKeyId?: number
+  plaintext: Buffer;
+  newRecord: Buffer;
+  usedPreKeyId?: number;
 }
 
-export declare function sessionDecryptPrekey(record: Buffer | undefined | null, ourIdentity: KeyPairIn, signedPreKey: KeyPairIn, preKey: KeyPairIn | undefined | null, msg: Buffer): PreKeyDecryptResult
+export declare function sessionDecryptPrekey(
+  record: Buffer | undefined | null,
+  ourIdentity: KeyPairIn,
+  signedPreKey: KeyPairIn,
+  preKey: KeyPairIn | undefined | null,
+  msg: Buffer,
+): PreKeyDecryptResult;
 
-export declare function sessionDecryptWhisper(record: Buffer, ourIdentityPub: Buffer, msg: Buffer): DecryptResult
+export declare function sessionDecryptPrekeyAsync(
+  record: Buffer | undefined | null,
+  ourIdentity: KeyPairIn,
+  signedPreKey: KeyPairIn,
+  preKey: KeyPairIn | undefined | null,
+  msg: Buffer,
+): Promise<PreKeyDecryptResult>;
 
-export declare function sessionEncrypt(record: Buffer, ourIdentityPub: Buffer, ourRegistrationId: number, plaintext: Buffer): EncryptResult
+export declare function sessionDecryptWhisper(
+  record: Buffer,
+  ourIdentityPub: Buffer,
+  msg: Buffer,
+): DecryptResult;
 
-export declare function sessionHaveOpen(record: Buffer): boolean
+export declare function sessionDecryptWhisperAsync(
+  record: Buffer,
+  ourIdentityPub: Buffer,
+  msg: Buffer,
+): Promise<DecryptResult>;
 
-export declare function sessionProcessPrekeyBundle(record: Buffer | undefined | null, ourIdentity: KeyPairIn, bundle: PreKeyBundleIn): Buffer
+export declare function sessionEncrypt(
+  record: Buffer,
+  ourIdentityPub: Buffer,
+  ourRegistrationId: number,
+  plaintext: Buffer,
+): EncryptResult;
 
-export declare function sharedSecret(pubKey: Buffer, privKey: Buffer): Buffer
+export declare function sessionEncryptAsync(
+  record: Buffer,
+  ourIdentityPub: Buffer,
+  ourRegistrationId: number,
+  plaintext: Buffer,
+): Promise<EncryptResult>;
 
-export declare function signMessage(privKey: Buffer, message: Buffer): Buffer
+export declare function sessionHaveOpen(record: Buffer): boolean;
 
-export declare function verifySignature(sig: Buffer, pubKey: Buffer, message: Buffer): boolean
+export declare function sessionProcessPrekeyBundle(
+  record: Buffer | undefined | null,
+  ourIdentity: KeyPairIn,
+  bundle: PreKeyBundleIn,
+): Buffer;
 
-export declare function x25519Agree(pubKey: Buffer, privKey: Buffer): Buffer
+export declare function sessionProcessPrekeyBundleAsync(
+  record: Buffer | undefined | null,
+  ourIdentity: KeyPairIn,
+  bundle: PreKeyBundleIn,
+): Promise<Buffer>;
 
-export declare function x25519CreateKeyPair(privKey: Uint8Array): Buffer
+export declare function sharedSecret(pubKey: Buffer, privKey: Buffer): Buffer;
 
-export declare function x25519GenerateKeyPair(): Buffer
+export declare function signMessage(privKey: Buffer, message: Buffer): Buffer;
 
-export declare function x25519PublicFromPrivate(privKey: Uint8Array): Buffer
+export declare function verifySignature(
+  sig: Buffer,
+  pubKey: Buffer,
+  message: Buffer,
+): boolean;
+
+export declare function x25519Agree(pubKey: Buffer, privKey: Buffer): Buffer;
+
+export declare function x25519CreateKeyPair(privKey: Uint8Array): Buffer;
+
+export declare function x25519GenerateKeyPair(): Buffer;
+
+export declare function x25519PublicFromPrivate(privKey: Uint8Array): Buffer;
