@@ -150,7 +150,18 @@ pub fn session_decrypt_whisper(
     new_record: rec.serialize().into(),
   })
 }
-
+#[napi]
+pub fn generate_key_pairs(count: u32) -> napi::Result<Vec<CreateKeyPair>> {
+  let pairs = curve::generate_key_pairs_int(count as usize);
+  let result = pairs
+    .into_iter()
+    .map(|(pub_key, priv_key)| CreateKeyPair {
+      pub_key: Buffer::from(Vec::from(pub_key)),
+      priv_key: Buffer::from(Vec::from(priv_key)),
+    })
+    .collect();
+  Ok(result)
+}
 #[napi]
 pub fn session_process_prekey_bundle(
   record: Option<Buffer>,

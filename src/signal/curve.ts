@@ -11,6 +11,8 @@ const split = (b: Buffer): KeyPair => ({
   privKey: b.subarray(0, 32),
   pubKey: b.subarray(32),
 })
+export const generateKeyPairs = (count: number): KeyPair[] =>
+  native.generateKeyPairs(count)
 
 export const generateKeyPair = (): KeyPair => split(native.x25519GenerateKeyPair())
 export const createKeyPair = (privKey: Bytes): KeyPair => split(native.x25519CreateKeyPair(privKey))

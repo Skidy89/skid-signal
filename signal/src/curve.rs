@@ -23,6 +23,13 @@ pub fn generate_key_pair_int() -> ([u8; 33], [u8; 32]) {
   rng.fill_bytes(&mut priv_key);
   create_key_pair_int(priv_key)
 }
+pub fn generate_key_pairs_int(count: usize) -> Vec<([u8; 33], [u8; 32])> {
+  let mut key_pairs = Vec::with_capacity(count);
+  for _ in 0..count {
+    key_pairs.push(generate_key_pair_int());
+  }
+  key_pairs
+}
 
 pub fn shared_secret_int(
   pub_key_bytes: &[u8],

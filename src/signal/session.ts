@@ -27,7 +27,7 @@ export interface PreKeyBundle {
   preKey?: { keyId: number; publicKey: Bytes }
 }
 
-const keyPair = (k: KeyPairLike) => ({ pubKey: k.pubKey, privKey: k.privKey })
+const keyPair = (k: KeyPairLike) => ({ pubKey: pub33(k.pubKey), privKey: k.privKey })
 
 async function assertTrusted(storage: SignalStorage, name: string, identityKey: Buffer) {
   if (storage.isTrustedIdentity && !(await storage.isTrustedIdentity(name, identityKey))) {

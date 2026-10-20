@@ -33,6 +33,8 @@ export declare function extractIdentityFromPkmsg(ciphertext: Uint8Array): Buffer
 
 export declare function generateKeyPair(): CreateKeyPair
 
+export declare function generateKeyPairs(count: number): Array<CreateKeyPair>
+
 export declare function groupCreateDistributionMessage(record?: Buffer | undefined | null): GroupSkdmResult
 
 export declare function groupDecrypt(record: Buffer | undefined | null, msg: Buffer): DecryptResult

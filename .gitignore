@@ -9,3 +9,4 @@ dist
 *.tmp
 *.swp
 remember.txt
+*.js
