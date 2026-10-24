@@ -25,6 +25,19 @@ export interface DecryptResult {
   newRecord: Buffer;
 }
 
+export interface EncryptItemIn {
+  record: Buffer;
+  plaintext: Buffer;
+}
+
+export interface EncryptManyItem {
+  msgType: number;
+  body: Buffer;
+  registrationId: number;
+  newRecord: Buffer;
+  error?: string;
+}
+
 export interface EncryptResult {
   /** 1 = WhisperMessage, 3 = PreKeyWhisperMessage */
   msgType: number;
@@ -41,7 +54,6 @@ export declare function generateKeyPair(): CreateKeyPair;
 
 export declare function generateKeyPairs(count: number): Array<CreateKeyPair>;
 
-/** Sin estado, así que aquí sí es seguro cancelar con AbortSignal. */
 export declare function generateKeyPairsAsync(
   count: number,
   signal?: AbortSignal | undefined | null,
@@ -187,6 +199,12 @@ export declare function sessionEncryptAsync(
   ourRegistrationId: number,
   plaintext: Buffer,
 ): Promise<EncryptResult>;
+
+export declare function sessionEncryptManyAsync(
+  items: Array<EncryptItemIn>,
+  ourIdentityPub: Buffer,
+  ourRegistrationId: number,
+): Promise<Array<EncryptManyItem>>;
 
 export declare function sessionHaveOpen(record: Buffer): boolean;
 

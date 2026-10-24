@@ -8,3 +8,4 @@ export * from "./signal/errors";
 export { SessionRecord, SenderKeyRecord } from "./signal/records";
 export * from "./signal/session";
 export * from "./signal/group";
+export { sessionEncryptManyAsync } from "../native/index";

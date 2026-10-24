@@ -1,7 +1,7 @@
 use super::*;
 use napi::Task;
 use zeroize::Zeroize;
-
+use rayon::prelude::*;
 
 fn rec_from(bytes: Option<&[u8]>) -> napi::Result<SessionRecord> {
   match bytes {
@@ -525,5 +525,89 @@ pub fn group_decrypt_async(record: Option<Buffer>, msg: Buffer) -> AsyncTask<Gro
   AsyncTask::new(GroupDecryptTask {
     record: record.map(|b| b.to_vec()),
     msg: msg.to_vec(),
+  })
+}
+
+#[napi(object)]
+pub struct EncryptItemIn {
+  pub record: Buffer,
+  pub plaintext: Buffer,
+}
+
+#[napi(object)]
+pub struct EncryptManyItem {
+  pub msg_type: u32,
+  pub body: Buffer,
+  pub registration_id: u32,
+  pub new_record: Buffer,
+  pub error: Option<String>,
+}
+
+pub struct SessionEncryptManyTask {
+  items: Vec<(Vec<u8>, Vec<u8>)>,
+  our_identity_pub: Vec<u8>,
+  our_registration_id: u32,
+}
+
+impl Task for SessionEncryptManyTask {
+  type Output = Vec<std::result::Result<SessionEncryptOut, String>>;
+  type JsValue = Vec<EncryptManyItem>;
+
+  fn compute(&mut self) -> napi::Result<Self::Output> {
+    let ident = &self.our_identity_pub;
+    let reg = self.our_registration_id;
+    Ok(
+      self
+        .items
+        .par_iter()
+        .map(|(record, plaintext)| -> std::result::Result<SessionEncryptOut, String> {
+          let mut rec = SessionRecord::deserialize(record).map_err(|e| e.to_string())?;
+          let out = session_cipher::encrypt(&mut rec, ident, reg, plaintext).map_err(|e| e.to_string())?;
+          Ok(SessionEncryptOut {
+            msg_type: u32::from(out.msg_type),
+            body: out.body.into(),
+            registration_id: out.registration_id,
+            new_record: rec.serialize().into(),
+          })
+        })
+        .collect(),
+    )
+  }
+
+  fn resolve(&mut self, _env: Env, outs: Self::Output) -> napi::Result<Self::JsValue> {
+    Ok(
+      outs
+        .into_iter()
+        .map(|r| match r {
+          Ok(o) => EncryptManyItem {
+            msg_type: o.msg_type,
+            body: o.body.into(),
+            registration_id: o.registration_id,
+            new_record: o.new_record.into(),
+            error: None,
+          },
+          Err(e) => EncryptManyItem {
+            msg_type: 0,
+            body: Vec::new().into(),
+            registration_id: 0,
+            new_record: Vec::new().into(),
+            error: Some(e),
+          },
+        })
+        .collect(),
+    )
+  }
+}
+
+#[napi(ts_return_type = "Promise<Array<EncryptManyItem>>")]
+pub fn session_encrypt_many_async(
+  items: Vec<EncryptItemIn>,
+  our_identity_pub: Buffer,
+  our_registration_id: u32,
+) -> AsyncTask<SessionEncryptManyTask> {
+  AsyncTask::new(SessionEncryptManyTask {
+    items: items.iter().map(|i| (i.record.to_vec(), i.plaintext.to_vec())).collect(),
+    our_identity_pub: our_identity_pub.to_vec(),
+    our_registration_id,
   })
 }

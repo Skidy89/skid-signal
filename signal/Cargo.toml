@@ -27,6 +27,7 @@ prost = "0.14.4"
 thiserror = "2.0.21"
 x25519-dalek = "3.0.0"
 getrandom = "0.2"
+rayon = "1"
 
 [build-dependencies]
 napi-build = "2.4.1"
