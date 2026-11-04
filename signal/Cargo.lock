@@ -1688,10 +1688,12 @@ dependencies = [
  "signal_proto",
  "subtle",
  "thiserror",
+ "wacore-appstate",
  "wacore-binary",
  "wacore-libsignal",
  "wacore-noise",
  "wacore-voip",
+ "waproto",
  "x25519-dalek",
  "zeroize",
 ]

@@ -78,10 +78,12 @@ crate-type = ["cdylib"]
 signal_proto = { path = "../signalProto" }
 napi = { version = "3.12.2", features = ["full"] }
 napi-derive = "3.6.3"
-wacore-binary = { workspace = true }
+wacore-binary = { workspace = true, features = ["serde"] }
+wacore-appstate = { workspace = true }
 wacore-noise = { workspace = true }
 wacore-libsignal = { workspace = true }
 wacore-voip = { workspace = true }
+waproto = { workspace = true }
 curve25519-dalek = "4"
 ed25519-dalek = "2"
 hkdf = "0.12"

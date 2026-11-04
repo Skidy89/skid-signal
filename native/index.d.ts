@@ -49,6 +49,26 @@ export declare class NoiseXxHandshake {
   finish(): NoiseTransport
 }
 
+export declare function appStateContentMac(operation: number, data: Buffer, keyId: Buffer, key: Buffer): Buffer
+
+export declare function appStateExpandKeys(masterKey: Buffer): ExpandedAppStateKeys
+
+export declare function appStateIndexMac(index: Buffer, key: Buffer): Buffer
+
+export declare function appStateLthash(base: Buffer, subtract: Array<Buffer>, add: Array<Buffer>): Buffer
+
+export declare function binaryMarshalNode(nodeJson: string): Buffer
+
+export declare function binaryMarshalPackedNode(nodeJson: string): Buffer
+
+export declare function binaryPack(nodeBytes: Buffer): Buffer
+
+export declare function binaryUnmarshalNode(data: Buffer): string
+
+export declare function binaryUnmarshalPackedNode(data: Buffer): string
+
+export declare function binaryUnpack(data: Buffer): Buffer
+
 export declare function calculateAgreement(pubKey: Buffer, privKey: Buffer): Buffer
 
 export interface CreateKeyPair {
@@ -82,6 +102,14 @@ export interface EncryptResult {
   body: Buffer
   registrationId: number
   newRecord: Buffer
+}
+
+export interface ExpandedAppStateKeys {
+  index: Buffer
+  valueEncryption: Buffer
+  valueMac: Buffer
+  snapshotMac: Buffer
+  patchMac: Buffer
 }
 
 export declare function extractIdentityFromPkmsg(ciphertext: Uint8Array): Buffer | null
@@ -128,9 +156,21 @@ export interface GroupSkdmResult {
   newRecord: Buffer
 }
 
+export declare function jidToCompact(value: string): string
+
+export declare function jidToString(value: string): string
+
 export interface KeyPairIn {
   pubKey: Buffer
   privKey: Buffer
+}
+
+export interface ParsedJid {
+  user: string
+  server: string
+  agent: number
+  device: number
+  integrator: number
 }
 
 export interface ParsedPreKeyMessage {
@@ -140,6 +180,8 @@ export interface ParsedPreKeyMessage {
   baseKey: Buffer
   identityKey: Buffer
 }
+
+export declare function parseJid(value: string): ParsedJid
 
 export declare function parsePrekeyMessage(msg: Buffer): ParsedPreKeyMessage
 

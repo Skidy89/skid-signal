@@ -38,6 +38,7 @@ jobs:
       - run: yarn build:native
       - run: yarn build
       - run: yarn test
+  
 
   build:
     name: Build ${{ matrix.settings.target }}
@@ -56,6 +57,8 @@ jobs:
           - { host: macos-latest,   target: aarch64-apple-darwin,       flags: "", smoke: true }
           - { host: macos-latest,   target: x86_64-apple-darwin,        flags: "" }
     steps:
+      - run: git config --global core.autocrlf false
+      - uses: actions/checkout@v4
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
