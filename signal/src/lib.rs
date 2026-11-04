@@ -1,10 +1,12 @@
 pub mod crypto;
 pub mod curve;
 pub mod group;
+pub mod noise;
 pub mod session_cipher;
 pub mod session_record;
 pub mod tasks;
 pub mod utils;
+pub mod voip;
 pub mod wire;
 pub mod x3dhra;
 use crate::curve::{generate_key_pair_int, shared_secret_int, sign, verify};

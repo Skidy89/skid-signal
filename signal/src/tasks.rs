@@ -1,7 +1,7 @@
 use super::*;
 use napi::Task;
-use zeroize::Zeroize;
 use rayon::prelude::*;
+use zeroize::Zeroize;
 
 fn rec_from(bytes: Option<&[u8]>) -> napi::Result<SessionRecord> {
   match bytes {
@@ -51,7 +51,6 @@ impl PlainOut {
   }
 }
 
-
 pub struct GenKeyPairsTask {
   count: usize,
 }
@@ -94,7 +93,6 @@ pub fn generate_key_pairs_async(
     signal,
   )
 }
-
 
 pub struct SessionEncryptTask {
   record: Vec<u8>,
@@ -156,7 +154,6 @@ pub fn session_encrypt_async(
   })
 }
 
-
 pub struct SessionDecryptWhisperTask {
   record: Vec<u8>,
   our_identity_pub: Vec<u8>,
@@ -195,7 +192,6 @@ pub fn session_decrypt_whisper_async(
     msg: msg.to_vec(),
   })
 }
-
 
 pub struct ProcessBundleTask {
   record: Option<Vec<u8>>,
@@ -257,7 +253,6 @@ pub fn session_process_prekey_bundle_async(
     pre_key,
   }))
 }
-
 
 pub struct SessionDecryptPreKeyTask {
   record: Option<Vec<u8>>,
@@ -326,7 +321,6 @@ pub fn session_decrypt_prekey_async(
     msg: msg.to_vec(),
   })
 }
-
 
 pub struct GroupCreateSkdmTask {
   record: Option<Vec<u8>>,
@@ -398,7 +392,6 @@ pub fn group_process_distribution_message_async(
   })
 }
 
-
 pub struct GroupEncryptTask {
   record: Vec<u8>,
   plaintext: Vec<u8>,
@@ -444,7 +437,6 @@ pub fn group_encrypt_async(
     legacy_iterations: legacy_iterations.unwrap_or(false),
   })
 }
-
 
 pub struct GroupEncryptSkdmTask {
   record: Option<Vec<u8>>,
@@ -495,7 +487,6 @@ pub fn group_encrypt_with_skdm_async(
     legacy_iterations: legacy_iterations.unwrap_or(false),
   })
 }
-
 
 pub struct GroupDecryptTask {
   record: Option<Vec<u8>>,
@@ -560,16 +551,19 @@ impl Task for SessionEncryptManyTask {
       self
         .items
         .par_iter()
-        .map(|(record, plaintext)| -> std::result::Result<SessionEncryptOut, String> {
-          let mut rec = SessionRecord::deserialize(record).map_err(|e| e.to_string())?;
-          let out = session_cipher::encrypt(&mut rec, ident, reg, plaintext).map_err(|e| e.to_string())?;
-          Ok(SessionEncryptOut {
-            msg_type: u32::from(out.msg_type),
-            body: out.body.into(),
-            registration_id: out.registration_id,
-            new_record: rec.serialize().into(),
-          })
-        })
+        .map(
+          |(record, plaintext)| -> std::result::Result<SessionEncryptOut, String> {
+            let mut rec = SessionRecord::deserialize(record).map_err(|e| e.to_string())?;
+            let out = session_cipher::encrypt(&mut rec, ident, reg, plaintext)
+              .map_err(|e| e.to_string())?;
+            Ok(SessionEncryptOut {
+              msg_type: u32::from(out.msg_type),
+              body: out.body.into(),
+              registration_id: out.registration_id,
+              new_record: rec.serialize().into(),
+            })
+          },
+        )
         .collect(),
     )
   }
@@ -606,7 +600,10 @@ pub fn session_encrypt_many_async(
   our_registration_id: u32,
 ) -> AsyncTask<SessionEncryptManyTask> {
   AsyncTask::new(SessionEncryptManyTask {
-    items: items.iter().map(|i| (i.record.to_vec(), i.plaintext.to_vec())).collect(),
+    items: items
+      .iter()
+      .map(|i| (i.record.to_vec(), i.plaintext.to_vec()))
+      .collect(),
     our_identity_pub: our_identity_pub.to_vec(),
     our_registration_id,
   })

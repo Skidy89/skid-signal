@@ -1,0 +1,10 @@
+[package]
+name = "smoothutf8"
+version = "0.2.3"
+edition = "2021"
+
+[features]
+simdutf8 = []
+
+[lib]
+path = "src/lib.rs"

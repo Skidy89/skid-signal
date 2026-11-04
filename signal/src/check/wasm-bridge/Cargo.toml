@@ -1,0 +1,30 @@
+[package]
+name = "velowa-wasm-bridge"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Thin wasm-bindgen bridge exposing the vendored wacore-{binary,libsignal,noise,appstate} crates to src/"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wacore-binary = { workspace = true }
+wacore-libsignal = { workspace = true }
+wacore-noise = { workspace = true }
+wacore-appstate = { workspace = true }
+waproto = { workspace = true }
+serde_json = { workspace = true, features = ["alloc"] }
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+wasm-bindgen-futures = "0.4"
+async-trait = { workspace = true }
+anyhow = { workspace = true }
+buffa = { workspace = true }
+rand = { workspace = true }
+console_error_panic_hook = "0.1"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
