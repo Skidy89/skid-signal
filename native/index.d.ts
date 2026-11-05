@@ -57,13 +57,13 @@ export declare function appStateIndexMac(index: Buffer, key: Buffer): Buffer
 
 export declare function appStateLthash(base: Buffer, subtract: Array<Buffer>, add: Array<Buffer>): Buffer
 
-export declare function binaryMarshalNode(nodeJson: string): Buffer
+export declare function binaryMarshalNode(nodeData: Buffer): Buffer
 
 export declare function binaryMarshalPackedNode(nodeJson: string): Buffer
 
 export declare function binaryPack(nodeBytes: Buffer): Buffer
 
-export declare function binaryUnmarshalNode(data: Buffer): string
+export declare function binaryUnmarshalNode(data: Buffer): Buffer
 
 export declare function binaryUnmarshalPackedNode(data: Buffer): string
 

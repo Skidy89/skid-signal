@@ -1,8 +1,8 @@
+pub mod appstate;
+pub mod binary;
 pub mod crypto;
 pub mod curve;
 pub mod group;
-pub mod appstate;
-pub mod binary;
 pub mod noise;
 pub mod session_cipher;
 pub mod session_record;

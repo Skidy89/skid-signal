@@ -42,7 +42,6 @@
     "@napi-rs/cli": "^3.10.8",
     "@types/node": "^26.6.5",
     "jest": "^30.5.2",
-    "libsignal": "github:WhiskeySockets/libsignal-node",
     "protobufjs-cli": "^2.7.1"
   },
   "dependencies": {

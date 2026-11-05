@@ -29,17 +29,18 @@ pub fn binary_unpack(data: Buffer) -> napi::Result<Buffer> {
 }
 
 #[napi]
-pub fn binary_marshal_node(node_json: String) -> napi::Result<Buffer> {
-  let node: Node = serde_json::from_str(&node_json).map_err(js_err)?;
+pub fn binary_marshal_node(node_data: Buffer) -> napi::Result<Buffer> {
+  let node: Node = rmp_serde::from_slice(&node_data).map_err(js_err)?;
+
   marshal_auto(&node).map(Buffer::from).map_err(js_err)
 }
 
 #[napi]
-pub fn binary_unmarshal_node(data: Buffer) -> napi::Result<String> {
+pub fn binary_unmarshal_node(data: Buffer) -> napi::Result<Buffer> {
   let node: NodeRef<'_> = wacore_binary::marshal::unmarshal_ref(&data).map_err(js_err)?;
-  serde_json::to_string(&node).map_err(js_err)
-}
 
+  rmp_serde::to_vec(&node).map(Buffer::from).map_err(js_err)
+}
 #[napi]
 pub fn binary_marshal_packed_node(node_json: String) -> napi::Result<Buffer> {
   let node: Node = serde_json::from_str(&node_json).map_err(js_err)?;

@@ -39,7 +39,10 @@ pub fn app_state_lthash(
   subtract: Vec<Buffer>,
   add: Vec<Buffer>,
 ) -> napi::Result<Buffer> {
-  if base.len() != 128 || subtract.iter().any(|item| item.len() != 128) || add.iter().any(|item| item.len() != 128) {
+  if base.len() != 128
+    || subtract.iter().any(|item| item.len() != 128)
+    || add.iter().any(|item| item.len() != 128)
+  {
     return Err(js_err("LTHash inputs must all be 128 bytes"));
   }
   let mut output = base.to_vec();
