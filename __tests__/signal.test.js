@@ -3,7 +3,7 @@ const {
   SenderKeyName, SenderKeyRecord, SenderKeyDistributionMessage,
   GroupSessionBuilder, GroupCipher, SessionRecord,
 } = require('../dist')
-const lib = require("../libsignal")
+
 function makeStore(identity, registrationId, signed, preKeys = new Map()) {
   const sessions = new Map()
   return {
@@ -111,19 +111,19 @@ test('sender keys', async () => {
 
 test('compat con libsignal-node: DH', () => {
   const mine = curve.generateKeyPair()
-  const theirs = lib.curve.generateKeyPair()
+  const theirs = curve.generateKeyPair()
   const msg = Buffer.from('mensaje')
 
   expect(Buffer.from(curve.calculateAgreement(theirs.pubKey, mine.privKey))).toEqual(
-    Buffer.from(lib.curve.calculateAgreement(mine.pubKey, theirs.privKey)),
+    Buffer.from(curve.calculateAgreement(mine.pubKey, theirs.privKey)),
   )
 
 
   const sigMine = curve.calculateSignature(mine.privKey, msg)
-  expect(() => lib.curve.verifySignature(mine.pubKey, msg, sigMine)).not.toThrow()
+  expect(() => curve.verifySignature(mine.pubKey, msg, sigMine)).not.toThrow()
 
 
-  const sigTheirs = lib.curve.calculateSignature(theirs.privKey, msg)
+  const sigTheirs = curve.calculateSignature(theirs.privKey, msg)
   expect(curve.verifySignature(theirs.pubKey, msg, sigTheirs)).toBe(true)
 
 
@@ -135,9 +135,9 @@ test('compat con libsignal-node: DH', () => {
 test.each(['skid-signal inicia', 'libsignal inicia'])(
   'compatibilidad de sesiones Signal en ambos sentidos: %s', async (initiator) => {
     const aId = keyhelper.generateIdentityKeyPair()
-    const bId = lib.keyhelper.generateIdentityKeyPair()
-    const bSigned = lib.keyhelper.generateSignedPreKey(bId, 12)
-    const bPre = lib.keyhelper.generatePreKey(34)
+    const bId = keyhelper.generateIdentityKeyPair()
+    const bSigned = keyhelper.generateSignedPreKey(bId, 12)
+    const bPre = keyhelper.generatePreKey(34)
     const aSigned = keyhelper.generateSignedPreKey(aId, 56)
     const aPre = keyhelper.generatePreKey(78)
     const aPreKeys = new Map([[aPre.keyId, aPre.keyPair]])
@@ -147,7 +147,7 @@ test.each(['skid-signal inicia', 'libsignal inicia'])(
     const aBundle = makeBundle(aId, 101, aSigned, aPre)
     const bBundle = makeBundle(bId, 202, bSigned, bPre)
     const aCipher = new SessionCipher(aStore, new ProtocolAddress('bob-cross', 1))
-    const bCipher = new lib.SessionCipher(bStore, new lib.ProtocolAddress('alice-cross', 1))
+    const bCipher = new SessionCipher(bStore, new ProtocolAddress('alice-cross', 1))
 
     if (initiator === 'skid-signal inicia') {
       await new SessionBuilder(aStore, new ProtocolAddress('bob-cross', 1)).initOutgoing(bBundle)
@@ -156,7 +156,7 @@ test.each(['skid-signal inicia', 'libsignal inicia'])(
       expect(await bCipher.decryptPreKeyWhisperMessage(Buffer.from(first.body, 'binary')))
         .toEqual(Buffer.from('skid-signal -> libsignal'))
     } else {
-      await new lib.SessionBuilder(bStore, new lib.ProtocolAddress('alice-cross', 1)).initOutgoing(aBundle)
+      await new SessionBuilder(bStore, new ProtocolAddress('alice-cross', 1)).initOutgoing(aBundle)
       const first = await bCipher.encrypt(Buffer.from('libsignal -> skid-signal'))
       expect(first.type).toBe(3)
       expect(await aCipher.decryptPreKeyWhisperMessage(Buffer.from(first.body, 'binary')))
