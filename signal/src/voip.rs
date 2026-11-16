@@ -4,6 +4,7 @@ use wacore_voip::voip::{
   AudioConfig, AudioFormat, CallConfig, CallDirection, CallEngine as CoreCallEngine, CallEvent,
   Input, Output, TxIdSource, NEVER,
 };
+use zeroize::Zeroize;
 
 fn js_err(error: impl std::fmt::Display) -> napi::Error {
   napi::Error::from_reason(error.to_string())
@@ -321,6 +322,22 @@ impl CallEngine {
   #[napi]
   pub fn rekey_recv(&mut self, answering_peer_lid: String) -> bool {
     self.inner.rekey_recv(&answering_peer_lid)
+  }
+
+  #[napi(js_name = applyGroupEpoch)]
+  pub fn apply_group_epoch(
+    &mut self,
+    transaction_id: u32,
+    epoch_key: Buffer,
+  ) -> napi::Result<String> {
+    let mut epoch_key = epoch_key.to_vec();
+    let result = self
+      .inner
+      .apply_group_raw_epoch(transaction_id, &epoch_key)
+      .map(|result| format!("{result:?}"))
+      .map_err(js_err);
+    epoch_key.zeroize();
+    result
   }
 
   #[napi]

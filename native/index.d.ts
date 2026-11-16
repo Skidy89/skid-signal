@@ -25,6 +25,7 @@ export declare class CallEngine {
   disableVideo(): void
   isVideoEnabled(): boolean
   rekeyRecv(answeringPeerLid: string): boolean
+  applyGroupEpoch(transactionId: number, epochKey: Buffer): string
   isAllocated(): boolean
   isTerminated(): boolean
   lastTimeout(): number | null
