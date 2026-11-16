@@ -9,3 +9,4 @@ export { SessionRecord, SenderKeyRecord } from "./signal/records";
 export * from "./signal/session";
 export * from "./signal/group";
 export * from "../native/index";
+// type?
