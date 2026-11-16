@@ -59,6 +59,16 @@ export declare class NoiseXxHandshake {
   finish(): NoiseTransport
 }
 
+/** The JavaScript-facing relay channel. */
+export declare class RelayChannel {
+  /** Dial the relay at `ip:port`. Nothing is sent until `pollTransmit` is drained. */
+  constructor(ip: string, port: number)
+  /** Feed a datagram from the relay. Returns an error text when the channel ended or failed. */
+  handleDatagram(nowMs: number, data: Buffer): string | null
+  handleTimeout(nowMs: number): string | null
+  isOpen(): boolean
+}
+
 export declare function appStateContentMac(operation: number, data: Buffer, keyId: Buffer, key: Buffer): Buffer
 
 export declare function appStateExpandKeys(masterKey: Buffer): ExpandedAppStateKeys

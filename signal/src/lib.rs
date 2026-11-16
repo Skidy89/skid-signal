@@ -10,6 +10,7 @@ pub mod tasks;
 pub mod utils;
 pub mod voip;
 pub mod voip_group;
+pub mod voip_relay;
 pub mod wire;
 pub mod x3dhra;
 use crate::curve::{generate_key_pair_int, shared_secret_int, sign, verify};
