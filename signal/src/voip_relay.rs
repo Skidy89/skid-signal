@@ -497,6 +497,7 @@ impl RelayChannel {
   }
 
   /// Queue one media message (STUN/RTP/RTCP bytes from the call engine).
+  #[napi]
   pub fn write(&mut self, now_ms: f64, data: Buffer) -> napi::Result<Option<String>> {
     Ok(
       self
@@ -508,16 +509,19 @@ impl RelayChannel {
   }
 
   /// The next datagram to send to the relay, if any.
+  #[napi]
   pub fn poll_transmit(&mut self) -> Option<Buffer> {
     self.stack.poll_transmit().map(|b| Buffer::from(b.to_vec()))
   }
 
   /// The next media message from the relay, if any.
+  #[napi]
   pub fn poll_inbound(&mut self) -> Option<Buffer> {
     self.stack.poll_inbound().map(|b| Buffer::from(b.to_vec()))
   }
 
   /// Milliseconds (on the caller's clock) when `handleTimeout` is due, or -1.
+  #[napi]
   pub fn poll_timeout(&self) -> f64 {
     match self.stack.poll_timeout() {
       Some(t) => t.saturating_duration_since(self.origin).as_micros() as f64 / 1000.0,
@@ -539,6 +543,7 @@ impl RelayChannel {
     self.stack.is_open()
   }
 
+  #[napi]
   pub fn close(&mut self, now_ms: f64) -> napi::Result<()> {
     self.stack.close(at(self.origin, now_ms)?);
     Ok(())

@@ -65,8 +65,17 @@ export declare class RelayChannel {
   constructor(ip: string, port: number)
   /** Feed a datagram from the relay. Returns an error text when the channel ended or failed. */
   handleDatagram(nowMs: number, data: Buffer): string | null
+  /** Queue one media message (STUN/RTP/RTCP bytes from the call engine). */
+  write(nowMs: number, data: Buffer): string | null
+  /** The next datagram to send to the relay, if any. */
+  pollTransmit(): Buffer | null
+  /** The next media message from the relay, if any. */
+  pollInbound(): Buffer | null
+  /** Milliseconds (on the caller's clock) when `handleTimeout` is due, or -1. */
+  pollTimeout(): number
   handleTimeout(nowMs: number): string | null
   isOpen(): boolean
+  close(nowMs: number): void
 }
 
 export declare function appStateContentMac(operation: number, data: Buffer, keyId: Buffer, key: Buffer): Buffer
