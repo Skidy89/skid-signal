@@ -9,7 +9,7 @@ fn js_err(error: impl std::fmt::Display) -> napi::Error {
   napi::Error::from_reason(error.to_string())
 }
 
-struct RandomTxIds;
+pub(crate) struct RandomTxIds;
 
 impl TxIdSource for RandomTxIds {
   fn next_tx_id(&mut self) -> [u8; 12] {
@@ -65,6 +65,17 @@ pub struct CallEngine {
 
 #[napi]
 impl CallEngine {
+  pub(crate) fn from_core(inner: CoreCallEngine) -> Self {
+    Self {
+      inner,
+      last_timeout: None,
+      last_event_code: -1,
+    }
+  }
+
+  pub(crate) fn core_mut(&mut self) -> &mut CoreCallEngine {
+    &mut self.inner
+  }
   #[napi(factory)]
   pub fn create(config: VoipConfig) -> napi::Result<Self> {
     let direction = match config.direction.as_str() {

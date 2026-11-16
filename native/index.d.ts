@@ -37,6 +37,15 @@ export declare class FrameDecoder {
   nextFrame(): Buffer | null
 }
 
+export declare class GroupSession {
+  constructor(callId: string, creator: string, selfJid: string)
+  applyAck(encoded: Buffer): string
+  applyInvite(encoded: Buffer): string
+  applyUpdate(encoded: Buffer): string
+  createEngine(incoming: boolean, opus: boolean, video: boolean): CallEngine
+  pushToEngine(engine: CallEngine, now: number): string
+}
+
 export declare class NoiseTransport {
   encrypt(plaintext: Buffer): Buffer
   decrypt(ciphertext: Buffer): Buffer
