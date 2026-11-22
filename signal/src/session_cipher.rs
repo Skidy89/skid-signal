@@ -122,7 +122,8 @@ fn fill_message_keys(chain: &mut Chain, counter: i32) -> Result<(), CipherError>
     chain
       .message_keys
       .insert(ck.counter + 1, message_key.to_vec());
-    ck.key = next_chain_key.to_vec();
+    ck.key.clear();
+    ck.key.extend_from_slice(&next_chain_key);
     ck.counter += 1;
   }
   Ok(())
@@ -268,21 +269,14 @@ fn decrypt_whisper_impl(
   buf: &[u8],
   keep_record_on_err: bool,
 ) -> Result<Vec<u8>, CipherError> {
-  let mut order: Vec<(String, i64)> = record
-    .sessions
-    .iter()
-    .map(|(id, s)| (id.clone(), s.used()))
-    .collect();
+  let mut order: Vec<_> = record.sessions.values_mut().collect();
   if order.is_empty() {
     return Err(CipherError::NoSessions);
   }
-  order.sort_by_key(|(_, used)| std::cmp::Reverse(*used));
+  order.sort_by_key(|s| std::cmp::Reverse(s.used()));
 
   let last = order.len() - 1;
-  for (i, (id, _)) in order.into_iter().enumerate() {
-    let Some(slot) = record.sessions.get_mut(&id) else {
-      continue;
-    };
+  for (i, slot) in order.into_iter().enumerate() {
     let result = if keep_record_on_err || i != last {
       let mut attempt = slot.clone();
       decrypt_with_entry(&mut attempt, our_identity_pub, buf).map(|pt| {
@@ -543,6 +537,47 @@ mod tests {
   }
 
   #[test]
+  fn session_candidates_preserve_recency_ties_and_failed_state() {
+    for mode in [0, 1, 2] {
+      for consume in [false, true] {
+        let (mut alice, mut bob) = pair();
+        let body = send(&mut alice, &ALICE_ID, b"candidate");
+        let original = bob.sessions.values().next().unwrap().clone();
+        bob.sessions.clear();
+        bob.sessions.insert("first".into(), original.clone());
+        bob.sessions.insert("second".into(), original.clone());
+        let expected = if mode == 0 {
+          bob.sessions.keys().next().unwrap().clone()
+        } else {
+          let newer = bob
+            .sessions
+            .get_mut("second")
+            .unwrap()
+            .index_info
+            .as_mut()
+            .unwrap();
+          newer.used = 1;
+          if mode == 2 {
+            newer.remote_identity_key[1] ^= 1;
+            "first".into()
+          } else {
+            "second".into()
+          }
+        };
+        let before = bob.clone();
+        let plaintext = decrypt_whisper_impl(&mut bob, &BOB_ID, &body, !consume).unwrap();
+        assert_eq!(plaintext, b"candidate");
+        assert!(!bob.sessions[&expected].chains.is_empty());
+        for (id, entry) in &bob.sessions {
+          if id != &expected {
+            assert_eq!(entry, &before.sessions[id]);
+          }
+        }
+      }
+    }
+  }
+
+  #[test]
   fn no_sessions_and_no_open_session() {
     let mut empty = SessionRecord::new();
     assert!(matches!(
@@ -572,6 +607,39 @@ mod tests {
     assert!(chain.message_keys.is_empty());
     fill_message_keys(&mut chain, 1999).unwrap();
     assert_eq!(chain.message_keys.len(), 2000);
+  }
+
+  #[test]
+  fn filling_message_keys_reuses_chain_key_buffer() {
+    let mut chain = Chain {
+      chain_key: Some(ChainKey {
+        counter: -1,
+        key: vec![7; 32],
+      }),
+      ..Default::default()
+    };
+    let original = chain.chain_key.as_ref().unwrap().key.as_ptr();
+    fill_message_keys(&mut chain, 0).unwrap();
+    let key = chain.chain_key.as_ref().unwrap();
+    assert_eq!(key.counter, 0);
+    assert_eq!(key.key, crate::crypto::hmac_sha256(&[7; 32], &[2]));
+    assert_eq!(key.key.as_ptr(), original);
+  }
+
+  #[test]
+  fn session_candidate_order_does_not_clone_ids() {
+    let mut record = SessionRecord::new();
+    for i in 0..10 {
+      record
+        .sessions
+        .insert(format!("session-{i}"), SessionEntry::default());
+    }
+    let before = record.clone();
+    let (result, allocations) =
+      crate::test_alloc::measure(|| decrypt_whisper_message(&mut record, &ALICE_ID, &[]));
+    assert!(matches!(result, Err(CipherError::NoMatchingSessions)));
+    assert_eq!(record, before);
+    assert_eq!(allocations, 1);
   }
 
   #[test]

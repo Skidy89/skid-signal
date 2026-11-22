@@ -7,6 +7,8 @@ pub mod noise;
 pub mod session_cipher;
 pub mod session_record;
 pub mod tasks;
+#[cfg(test)]
+mod test_alloc;
 pub mod utils;
 pub mod voip;
 pub mod voip_group;

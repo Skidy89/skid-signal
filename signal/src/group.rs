@@ -1,6 +1,6 @@
 use prost::Message;
 use rand::{rngs::OsRng, RngCore};
-use zeroize::Zeroizing;
+use zeroize::{Zeroize, Zeroizing};
 
 use crate::crypto::{aes_cbc_decrypt, aes_cbc_encrypt, derive_secrets, hmac_sha256, CryptoError};
 use crate::curve::{create_key_pair_int, sign, verify};
@@ -126,7 +126,9 @@ fn get_sender_key(
   }
   while current < iteration {
     push_skipped(state, current, hmac_sha256(&seed, &[0x01]).to_vec());
-    seed = Zeroizing::new(hmac_sha256(&seed, &[0x02]).to_vec());
+    let next_seed = Zeroizing::new(hmac_sha256(&seed, &[0x02]));
+    seed.zeroize();
+    seed.extend_from_slice(&next_seed[..]);
     current += 1;
   }
   let message_seed = Zeroizing::new(hmac_sha256(&seed, &[0x01]));
@@ -160,9 +162,10 @@ fn signing_public(state: &SenderKeyStateStructure) -> Result<Vec<u8>, GroupError
   normalize_signing_public(public)
 }
 
-fn with_version(msg: &impl Message) -> Vec<u8> {
-  let mut out = vec![VERSION_BYTE];
-  out.extend_from_slice(&msg.encode_to_vec());
+fn with_version(msg: &impl Message, suffix_len: usize) -> Vec<u8> {
+  let mut out = Vec::with_capacity(1 + msg.encoded_len() + suffix_len);
+  out.push(VERSION_BYTE);
+  msg.encode(&mut out).expect("Vec has capacity for protobuf");
   out
 }
 
@@ -207,12 +210,15 @@ pub(crate) fn create_distribution_message_with(
     chain_key: Some(seed.to_vec()),
     signing_key: Some(signing_public(state)?),
   };
-  Ok(with_version(&msg))
+  Ok(with_version(&msg, 0))
 }
 
 fn add_sender_key_state(record: &mut SenderKeyRecord, new_state: SenderKeyStateStructure) {
-  let public =
-    |s: &SenderKeyStateStructure| s.sender_signing_key.as_ref().and_then(|k| k.public.clone());
+  fn public(s: &SenderKeyStateStructure) -> Option<&[u8]> {
+    s.sender_signing_key
+      .as_ref()
+      .and_then(|k| k.public.as_deref())
+  }
   let new_public = public(&new_state);
   if let Some(pos) = record
     .sender_key_states
@@ -297,7 +303,7 @@ pub fn encrypt(
     iteration: Some(target),
     ciphertext: Some(ciphertext),
   };
-  let mut out = with_version(&msg);
+  let mut out = with_version(&msg, SIGNATURE_LEN);
   let signature = sign(&signing_private, &out, None).map_err(GroupError::Curve)?;
   out.extend_from_slice(&signature);
   Ok(out)
@@ -369,4 +375,105 @@ pub fn decrypt(record: &mut SenderKeyRecord, buf: &[u8]) -> Result<Vec<u8>, Grou
     .map_err(|_| GroupError::InvalidMessage)?;
   record.sender_key_states[index] = attempt;
   Ok(plaintext)
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn state() -> SenderKeyStateStructure {
+    SenderKeyStateStructure {
+      sender_key_id: Some(7),
+      sender_chain_key: Some(SenderChainKey {
+        iteration: Some(0),
+        seed: Some(vec![9; 32]),
+      }),
+      sender_signing_key: Some(SenderSigningKey {
+        public: Some(vec![5; 33]),
+        private: Some(vec![3; 32]),
+      }),
+      sender_message_keys: Vec::with_capacity(8),
+    }
+  }
+
+  #[test]
+  fn repeated_distribution_keeps_existing_state_without_key_copies() {
+    let mut original = state();
+    original.sender_chain_key.as_mut().unwrap().iteration = Some(8);
+    original.sender_message_keys.push(SenderMessageKey {
+      iteration: Some(2),
+      seed: Some(vec![1; 32]),
+    });
+    let mut record = SenderKeyRecord {
+      sender_key_states: vec![original.clone()],
+    };
+    let mut incoming = state();
+    incoming.sender_signing_key.as_mut().unwrap().private = None;
+    let (_, allocations) =
+      crate::test_alloc::measure(|| add_sender_key_state(&mut record, incoming));
+    assert_eq!(record.sender_key_states, vec![original]);
+    assert_eq!(allocations, 0);
+  }
+
+  #[test]
+  fn skipped_message_keys_reuse_temporary_chain_seed() {
+    let mut state = state();
+    let (result, allocations) = crate::test_alloc::measure(|| get_sender_key(&mut state, 4));
+    result.unwrap();
+    assert_eq!(state.sender_chain_key.as_ref().unwrap().iteration, Some(5));
+    assert_eq!(
+      state
+        .sender_message_keys
+        .iter()
+        .map(|key| key.iteration.unwrap())
+        .collect::<Vec<_>>(),
+      vec![0, 1, 2, 3]
+    );
+    assert!(get_sender_key(&mut state, 2).is_ok());
+    assert!(matches!(
+      get_sender_key(&mut state, 2),
+      Err(GroupError::OldCounter { .. })
+    ));
+    assert_eq!(allocations, 6);
+  }
+
+  #[test]
+  fn group_encoding_reserves_signature_without_reallocation() {
+    let msg = SenderKeyMessage {
+      id: Some(7),
+      iteration: Some(0),
+      ciphertext: Some(vec![0xa5; 65536]),
+    };
+    let (_, allocations) = crate::test_alloc::measure(|| {
+      let mut out = with_version(&msg, SIGNATURE_LEN);
+      out.extend_from_slice(&[0; SIGNATURE_LEN]);
+      out
+    });
+    assert_eq!(allocations, 1);
+  }
+
+  #[test]
+  fn distribution_bytes_match_wacore_libsignal() {
+    use wacore_libsignal::protocol::{PublicKey, SenderKeyDistributionMessage as Reference};
+
+    let (public, _) = create_key_pair_int([3; 32]);
+    let reference =
+      Reference::new(3, 7, 0, [9; 32], PublicKey::deserialize(&public).unwrap()).unwrap();
+    let mut record = SenderKeyRecord::default();
+    let actual = create_distribution_message_with(&mut record, 7, &[9; 32], &[3; 32]).unwrap();
+    assert_eq!(actual, reference.serialized());
+  }
+
+  #[test]
+  fn versioned_protobuf_allocates_only_output() {
+    let msg = SenderKeyMessage {
+      id: Some(7),
+      iteration: Some(0),
+      ciphertext: Some(vec![0xa5; 65536]),
+    };
+    let (out, allocations) = crate::test_alloc::measure(|| with_version(&msg, 0));
+    assert_eq!(out[0], VERSION_BYTE);
+    assert_eq!(SenderKeyMessage::decode(&out[1..]).unwrap(), msg);
+    assert_eq!(allocations, 1);
+  }
 }

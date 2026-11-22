@@ -49,3 +49,9 @@ zeroize = { version = "1", default-features = false, features = ["alloc"] }
 
 [build-dependencies]
 buffa-build = { workspace = true }
+
+[dev-dependencies]
+ciborium = "0.2"
+flate2 = { workspace = true }
+ruzstd = "0.8"
+tokio = { version = "1", features = ["macros", "rt", "time"] }

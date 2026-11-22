@@ -4,7 +4,6 @@ use hkdf::Hkdf;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 use subtle::ConstantTimeEq;
-use zeroize::Zeroizing;
 
 #[derive(Debug, thiserror::Error)]
 pub enum CryptoError {
@@ -40,12 +39,9 @@ pub fn verify_mac(key: &[u8], data: &[u8], expected: &[u8]) -> Result<(), Crypto
 
 pub fn derive_secrets<const N: usize>(input: &[u8], salt: &[u8], info: &[u8]) -> [[u8; 32]; N] {
   let hk = Hkdf::<Sha256>::new(Some(salt), input);
-  let mut okm = Zeroizing::new(vec![0u8; 32 * N]);
-  hk.expand(info, &mut okm[..]).expect("N * 32 <= 255 * 32");
   let mut out = [[0u8; 32]; N];
-  for (i, chunk) in out.iter_mut().enumerate() {
-    chunk.copy_from_slice(&okm[i * 32..(i + 1) * 32]);
-  }
+  hk.expand(info, out.as_flattened_mut())
+    .expect("N * 32 <= 255 * 32");
   out
 }
 
@@ -73,6 +69,14 @@ mod tests {
 
   fn hex(b: &[u8]) -> String {
     b.iter().map(|x| format!("{:02x}", x)).collect()
+  }
+
+  #[test]
+  fn hkdf_does_not_allocate() {
+    let (out, allocations) =
+      crate::test_alloc::measure(|| derive_secrets::<3>(&[0x0b; 22], b"salt", b"info"));
+    assert_ne!(out, [[0; 32]; 3]);
+    assert_eq!(allocations, 0);
   }
 
   #[test]
